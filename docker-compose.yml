@@ -1,0 +1,33 @@
+# LabDeck — самостоятелно хоствано табло за домашна лаборатория
+# Self-hosted home lab dashboard
+#
+#   Старт:   docker compose up -d --build
+#   Стоп:    docker compose down
+#   Логове:  docker compose logs -f
+#
+#   Start:   docker compose up -d --build
+#   Stop:    docker compose down
+#   Logs:    docker compose logs -f
+
+services:
+  labdeck:
+    build: .
+    image: labdeck:latest
+    # Без фиксиран container_name: Compose кръщава контейнера <папка>-labdeck-1,
+    # така че деплой от НОВА папка не блъска името на стар контейнер
+    # ("The container name /labdeck is already in use").
+    # No fixed container_name: Compose names the container <folder>-labdeck-1,
+    # so deploying from a NEW folder can never clash with an old container.
+    restart: unless-stopped
+    ports:
+      # Хост портът се задава в .env (LABDECK_PORT=8182) и оцелява при update.
+      # Host port is set in .env (LABDECK_PORT=8182) and survives updates.
+      - "${LABDECK_PORT:-3000}:3000"
+    environment:
+      # Парола за админ панела. Остави празно = без защита (само в LAN!).
+      # Password for the admin panel. Empty = no protection (LAN only!).
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
+      - TZ=${TZ:-Europe/Sofia}
+    volumes:
+      - ./data:/app/data     # конфигурация + кеш на favicons (бъдап!), config + favicon cache
+      - ./backups:/app/backups
