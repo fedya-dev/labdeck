@@ -210,3 +210,66 @@ backup.sh                rotated tar.gz backups of data/
 ## 📄 License
 
 [MIT](LICENSE) — free to use, modify and self-host.
+
+---
+
+## 🧭 Ръководство на български
+
+Практично ръководство — всичко, което трябва на всеки ден.
+
+### Инсталация от нулата (GitHub → работещо табло)
+
+```bash
+git clone git@github.com:fedya-dev/labdeck.git
+cd labdeck
+echo "LABDECK_PORT=8182" > .env        # избери СВОБОДЕН порт на сървъра
+mkdir -p data backups
+chown -R 1000:1000 data backups        # контейнерът записва като uid 1000
+docker compose up -d --build           # 1–3 минути за първи строеж
+```
+
+Отвори `http://<ip-на-сървъра>:8182`. Проверка: `curl -s localhost:8182/api/health`
+→ `{"ok":true,"app":"LabDeck","version":"…",…}`.
+
+### Смяна на порта
+
+```bash
+nano .env                              # смени реда LABDECK_PORT=
+docker compose up -d                   # без --build — сменя се само средата
+```
+
+### Парола за админ панела
+
+```bash
+echo "ADMIN_PASSWORD=МоятаПарола" >> .env   # ако редът липсва
+nano .env                                   # ако редът вече съществува
+docker compose up -d
+```
+
+- Липсващ или празен `ADMIN_PASSWORD` = панелът е без защита (само доверена LAN).
+- След смяна на паролата влизаш в панела наново с новата.
+- Паролата живее в `.env` — този файл никога не се качва в git и не се пипа
+  от обновяване.
+
+### Обновяване
+
+```bash
+git pull && docker compose up -d --build
+```
+
+`data/`, `.env` и `backups/` никога не се засягат от обновяване.
+
+### Резервно копие
+
+```bash
+./backup.sh                            # → backups/labdeck-backup-<време>.tar.gz
+```
+
+### Чести проблеми
+
+| Проблем | Причина | Решение |
+| --- | --- | --- |
+| `port is already allocated` | портът е зает (напр. Grafana на 3000) | смени `LABDECK_PORT` в `.env` → `docker compose up -d` |
+| Записът не пази секциите/услугите | `data/` не е собственост на uid 1000 | `chown -R 1000:1000 data backups` → `docker compose restart` |
+| Показва се стара версия | кеш на браузъра или стар образ | `Ctrl+Shift+R`; провери `/api/health`; при нужда `docker compose up -d --build` |
+| `container name "/labdeck" is already in use` | стар контейнер от предишен деплой | `docker rm -f labdeck` (от v1.1.1 вече не може да се случи) |
